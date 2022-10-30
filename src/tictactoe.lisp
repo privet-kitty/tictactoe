@@ -129,13 +129,6 @@
       (recur 0 0))
     res))
 
-(defun test-validity ()
-  (let ((res (analyze-game-tree)))
-    (loop for board below (ash 1 18)
-          when (or (and (valid-board-p board)  (zerop (aref res board)))
-                   (and (not (valid-board-p board)) (not (zerop (aref res board)))))
-          do (format t "~A ~A ~16,'0B~%" (valid-board-p board) (aref res board) board))))
-
 (defun println-all-positions (&optional (stream *standard-output*))
   (let ((evaluation (analyze-game-tree))
         (count 0))
