@@ -1,14 +1,17 @@
 (defpackage :tictactoe
   (:use :cl)
+  (:import-from :sb-c #:mask-signed-field)
   (:export #:board #:bref #:solve-top-left #:simulate #:analyze-game-tree #:valid-board-p))
 
 (in-package :tictactoe)
 
 (defconstant +player1+ 1)
-(defconstant +player2+ 2)
-(defconstant +draw+ 3)
+(defconstant +player2+ -1)
+(defconstant +draw+ 0)
+(defconstant +unknown+ -128)
 
 (deftype board () '(unsigned-byte 18))
+(deftype int8 () '(signed-byte 8))
 
 (declaim (inline get-index))
 (defun get-index (i j)
@@ -18,7 +21,7 @@
 (defun bref (board i j)
   (declare (board board)
            ((unsigned-byte 2) i j))
-  (ldb (byte 2 (get-index i j)) board))
+  (mask-signed-field 2 (ldb (byte 2 (get-index i j)) board)))
 
 (define-setf-expander bref (board i j &environment env)
   (multiple-value-bind (tmps vals stores store-form access-form)
@@ -36,13 +39,13 @@
                  ,store)
               `(bref ,access-form ,i ,j)))))
 
-(declaim (ftype (function * (values (unsigned-byte 2) &optional)) detect-winner))
+(declaim (ftype (function * (values (integer -1 1) &optional)) detect-winner))
 (defun detect-winner (board)
-  "Returns a winner or indicates a draw if the game is over, otherwise returns
-0. Note that this function may return any value if BOARD is not valid."
+  "Returns a winner if it exists, otherwise returns 0. Note that this
+function may return any value if BOARD is not valid."
   (declare (optimize (speed 3))
            (board board))
-  (loop for p from 1 to 2
+  (loop for p from -1 to 1 by 2
         when (or (= p (bref board 0 0) (bref board 0 1) (bref board 0 2))
                  (= p (bref board 1 0) (bref board 1 1) (bref board 1 2))
                  (= p (bref board 2 0) (bref board 2 1) (bref board 2 2))
@@ -51,19 +54,15 @@
                  (= p (bref board 0 2) (bref board 1 2) (bref board 2 2))
                  (= p (bref board 0 0) (bref board 1 1) (bref board 2 2))
                  (= p (bref board 0 2) (bref board 1 1) (bref board 2 0)))
-        do (return-from detect-winner p))
-  (dotimes (i 3)
-    (dotimes (j 3)
-      (when (zerop (bref board i j))
-        (return-from detect-winner 0))))
-  +draw+)
+        do (return p)
+        finally (return +draw+)))
 
 (defun consist-of-legal-mark-p (board)
   (declare (optimize (speed 3))
            (board board))
   (dotimes (i 3)
     (dotimes (j 3)
-      (when (= 3 (bref board i j))
+      (unless (<= -1 (bref board i j) 1)
         (return-from consist-of-legal-mark-p))))
   t)
 
@@ -80,7 +79,7 @@
         (ecase (bref board i j)
           (0)
           (1 (incf p1))
-          (2 (incf p2)))))
+          (-1 (incf p2)))))
     (values p1 p2)))
 
 (defun valid-board-p (board)
@@ -101,31 +100,33 @@
 
 (defun analyze-game-tree ()
   (declare (optimize (speed 3)))
-  (let ((res (make-array (ash 1 18) :element-type '(unsigned-byte 2) :initial-element 0)))
+  (let ((res (make-array (ash 1 18) :element-type 'int8 :initial-element +unknown+)))
     (labels ((recur (depth board)
                (declare (board board)
                         (fixnum depth))
                (assert (<= depth 9))
-               (cond ((not (zerop (aref res board))) board)
-                     ((not (zerop (detect-winner board)))
-                      (setf (aref res board) (detect-winner board)))
-                     (t (let ((player (if (evenp depth) 1 2))
-                              win-p
-                              draw-p)
-                          (dotimes (i 3)
-                            (dotimes (j 3)
-                              (when (zerop (bref board i j))
-                                (setf (bref board i j) player)
-                                (let ((next-state (recur (+ 1 depth) board)))
-                                  (cond ((= next-state player)
-                                         (setq win-p t))
-                                        ((= next-state +draw+)
-                                         (setq draw-p t))))
-                                (setf (bref board i j) 0))))
-                          (setf (aref res board)
-                                (cond (win-p player)
-                                      (draw-p +draw+)
-                                      (t (flip-player player)))))))))
+               (setf (aref res board)
+                     (cond ((not (= +unknown+ (aref res board)))
+                            (aref res board))
+                           ((not (zerop (detect-winner board)))
+                            (detect-winner board))
+                           (t
+                            (let ((player (if (evenp depth) +player1+ +player2+))
+                                  win-p
+                                  draw-p)
+                              (dotimes (i 3)
+                                (dotimes (j 3)
+                                  (when (zerop (bref board i j))
+                                    (setf (bref board i j) player)
+                                    (let ((next-state (recur (+ 1 depth) board)))
+                                      (cond ((= next-state player)
+                                             (setq win-p t))
+                                            ((= next-state +draw+)
+                                             (setq draw-p t))))
+                                    (setf (bref board i j) 0))))
+                              (cond (win-p player)
+                                    (draw-p +draw+)
+                                    (t (flip-player player)))))))))
       (recur 0 0))
     res))
 
@@ -133,7 +134,7 @@
   (let ((evaluation (analyze-game-tree))
         (count 0))
     (dotimes (board (ash 1 18))
-      (unless (zerop (aref evaluation board))
+      (unless (= +unknown+ (aref evaluation board))
         (uiop:println (aref evaluation board) stream)
         (println-board board)
         (incf count)))
@@ -162,11 +163,11 @@
       (ecase (bref board i j)
         (0 (write-char #\. stream))
         (1 (write-char #\o stream))
-        (2 (write-char #\x stream)))))
+        (-1 (write-char #\x stream)))))
   (write-char #\Newline stream))
 
 (declaim (inline flip-player))
-(defun flip-player (player) (logxor #b11 player))
+(defun flip-player (player) (- player))
 
 (defun solve-top-left (board player)
   (declare (ignore player))
