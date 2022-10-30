@@ -2,8 +2,8 @@
 
 (defsystem "tictactoe"
   :version "0.0.1"
-  :author ""
-  :license ""
+  :author "Hugo Sansaqua"
+  :license "MIT"
   :depends-on ()
   :components ((:module "src"
                 :components
