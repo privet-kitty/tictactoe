@@ -4,7 +4,7 @@
   :version "0.0.1"
   :author "Hugo Sansaqua"
   :license "MIT"
-  :depends-on ()
+  :depends-on ("cp/integer-pack")
   :components ((:module "src"
                 :components
                 ((:file "tictactoe"))))
