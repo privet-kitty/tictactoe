@@ -115,7 +115,7 @@ function may return any value if BOARD is not valid."
                (setf (aref res board)
                      (cond ((not (= +unknown+ (aref res board)))
                             (aref res board))
-                           ((not (zerop (detect-winner board)))
+                           ((or (= depth 9) (not (zerop (detect-winner board))))
                             (detect-winner board))
                            (t
                             (let ((player (if (evenp depth) +player1+ +player2+))
