@@ -150,6 +150,10 @@ function may return any value if BOARD is not valid."
 (defparameter *state* (sb-ext:seed-random-state 0))
 
 (defun solve-with-ev (ev explore-rate board player)
+  (declare (optimize (speed 3))
+           ((simple-array double-float (*)) ev)
+           (double-float explore-rate)
+           ((integer -1 1) player))
   (assert (zerop (detect-winner board)))
   (if (< (random 1d0 *state*) explore-rate)
       (let ((len 0)
@@ -181,6 +185,7 @@ function may return any value if BOARD is not valid."
         (values opt-i opt-j))))
 
 (defun simulate-game (ev1 ev2 explore-rate1 explore-rate2 &key log-p)
+  (declare (optimize (speed 3)))
   (let ((board 0)
         moves)
     (dotimes (turn 9)
@@ -249,11 +254,17 @@ function may return any value if BOARD is not valid."
               `(format *error-output* "~A => ~A~%" ',(car forms) ,(car forms))
               `(format *error-output* "~A => ~A~%" ',forms `(,,@forms))))
 
+(declaim (inline calc-new-value))
 (defun calc-new-value (parent-value child-value step)
   (+ parent-value (* step (- child-value parent-value))))
 
 (declaim ((simple-array double-float (*)) evaluation-vector))
 (defun update (evaluation moves board player step)
+  (declare (optimize (speed 3))
+           (board board)
+           ((integer -1 1) player)
+           (double-float step)
+           ((simple-array double-float (*)) evaluation))
   ;; (println-board board)
   ;; (write-line "---")
   
@@ -280,6 +291,7 @@ function may return any value if BOARD is not valid."
       ;; (dbg (board-to-line board0) (board-to-line board1) (board-to-line board2) value2)
       ;; (println-board board0)
       (let ((optimal-value2 (if (= player +player1+) -1d0 1d0)))
+        (declare (double-float optimal-value2))
         (dotimes (i 3)
           (dotimes (j 3)
             (when (zerop (bref board1 i j))
