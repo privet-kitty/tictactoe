@@ -28,7 +28,7 @@ jobs:
       - name: Install cl-competitive
         run: |
           mkdir ~/common-lisp
-          git clone --depth 1 git@github.com:privet-kitty/cl-competitive.git ~/common-lisp/cl-competitive
+          git clone --depth 1 https://github.com/privet-kitty/cl-competitive.git ~/common-lisp/cl-competitive
       - name: Run tests
         run: |
           ros -s fiveam -e '(handler-bind ((error (lambda (c) (describe c) (uiop:quit 1))))
