@@ -416,7 +416,7 @@ function may return any value if BOARD is not valid."
         for erate = (/ i 100d0)
         for ev = (learn-double 1.0d0 erate 10000000)
         for rmse = (calc-rmse-ev ev)
-        do (format t "~A ~A~%" erate rmse)))
+        do (format t "~2$ ~3$~%" erate rmse)))
 
 (defun experiment-against-random (ev-player n-game)
   (loop for i from 0 to 100 by 5
