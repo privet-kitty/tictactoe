@@ -18,17 +18,21 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+	  - name: Install ASDF
+        run: |
+          mkdir ~/common-lisp
+          git clone --depth 1 -b 3.3.5.3 https://gitlab.common-lisp.net/asdf/asdf.git ~/common-lisp/asdf
       - name: Install Roswell
         env:
           LISP: ${{ matrix.lisp }}
-          ROSWELL_LATEST_ASDF: 1
         run: |
           curl -L https://raw.githubusercontent.com/roswell/roswell/release/scripts/install-for-ci.sh | sh
       - name: Install fiveam
         run: ros install fiveam
       - name: Run tests
         run: |
-          ros -s fiveam -e '(ql:quickload :tictactoe/test)
+          ros -s fiveam -e '(handler-bind ((error (lambda (c) (print c) (uiop:quit 1))))
+                              (ql:quickload :tictactoe/test))
                             (handler-bind ((error (lambda (c) (print c) (uiop:quit 1))))
                               (or (fiveam:run! (quote tictactoe/test:main-suite))
                                   (uiop:quit 1)))'
