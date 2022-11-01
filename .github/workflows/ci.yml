@@ -28,8 +28,7 @@ jobs:
         run: ros install fiveam
       - name: Run tests
         run: |
-          ros -s fiveam -e '(handler-bind ((error (lambda (c) (print c) (uiop:quit 1))))
-                              (ql:quickload :tictactoe/test))
+          ros -s fiveam -e '(ql:quickload :tictactoe/test)
                             (handler-bind ((error (lambda (c) (print c) (uiop:quit 1))))
                               (or (fiveam:run! (quote tictactoe/test:main-suite))
                                   (uiop:quit 1)))'
