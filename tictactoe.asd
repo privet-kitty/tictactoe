@@ -17,7 +17,9 @@
 (defsystem "tictactoe/test"
   :depends-on ("tictactoe"
                "fiveam")
-  :components ((:file "test"))
+  :components ((:module "tests"
+                :components
+                ((:file "test"))))
   :description "Test system for tictactoe"
   :perform (test-op (o c)
                     (uiop:eval-input "(fiveam:run! 'tictactoe/test:main-suite)")))
