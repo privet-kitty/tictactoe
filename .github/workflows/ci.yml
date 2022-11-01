@@ -21,7 +21,6 @@ jobs:
       - name: Install Roswell
         env:
           LISP: ${{ matrix.lisp }}
-   		         ROSWELL_LATEST_ASDF: 1
         run: |
           curl -L https://raw.githubusercontent.com/roswell/roswell/release/scripts/install-for-ci.sh | sh
       - name: Install fiveam
